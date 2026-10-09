@@ -12,18 +12,21 @@
     "test": "vitest run",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
-    "deploy": "npm run build && npm run db:migrate:remote && wrangler deploy"
+    "deploy": "npm run db:migrate:remote && wrangler deploy",
+    "deploy:import": "node scripts/deploy-import.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
     "@lucide/vue": "^1.53.0",
     "hono": "^4.13.13",
+    "naive-ui": "^2.45.3",
     "vue": "^3.5.43"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261009.1",
     "@vitejs/plugin-vue": "^6.0.9",
     "@vue/tsconfig": "^0.9.1",
+    "jsonc-parser": "^3.3.1",
     "typescript": "^5.9.2",
     "vite": "^8.3.4",
     "vitest": "^5.0.3",
@@ -33,13 +36,13 @@
   "cloudflare": {
     "bindings": {
       "ADMIN_PASSWORD": {
-        "description": "管理员登录密码。请使用至少 32 个随机字符，不要复用其他网站密码。"
+        "description": "管理员登录密码。"
       },
       "SESSION_SECRET": {
-        "description": "会话签名密钥。请使用至少 32 字节随机值，例如 openssl rand -hex 32。"
+        "description": "会话签名密钥。"
       },
       "VAULT_MASTER_SECRET": {
-        "description": "保险库加密主密钥。请使用至少 32 字节随机值并离线备份；丢失后数据无法解密。"
+        "description": "密钥库加密主密钥，丢失后数据无法解密。"
       }
     }
   }

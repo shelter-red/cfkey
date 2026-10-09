@@ -1,5 +1,3 @@
 ADMIN_PASSWORD=
 SESSION_SECRET=
 VAULT_MASTER_SECRET=
-# Optional during key rotation only. Remove after old records have been opened or updated.
-VAULT_MASTER_SECRET_PREVIOUS=

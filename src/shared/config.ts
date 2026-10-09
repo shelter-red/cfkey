@@ -1,0 +1,5 @@
+export const REQUIRED_SECRET_NAMES = [
+  "ADMIN_PASSWORD",
+  "SESSION_SECRET",
+  "VAULT_MASTER_SECRET",
+] as const;

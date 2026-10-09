@@ -6,13 +6,14 @@ export type SecretFieldDefinition = {
   sensitive?: boolean;
   copyable?: boolean;
   placeholder?: string;
+  generate?: "random";
+  uploadAccept?: string;
 };
 
 export type SecretTemplate = {
   id: string;
   name: string;
   description: string;
-  strict?: boolean;
   fields: SecretFieldDefinition[];
 };
 
@@ -36,20 +37,6 @@ export type VaultItem = {
 
 export type VaultItemPage = {
   items: VaultItem[];
-  nextCursor: string | null;
-};
-
-export type AuditEvent = {
-  id: string;
-  action: string;
-  itemId: string | null;
-  itemName: string | null;
-  detail: string;
-  createdAt: number;
-};
-
-export type AuditPage = {
-  events: AuditEvent[];
   nextCursor: string | null;
 };
 

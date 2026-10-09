@@ -1,6 +1,5 @@
 export type Env = {
   DB: D1Database;
-  ASSETS: Fetcher;
   ADMIN_PASSWORD: string;
   SESSION_SECRET: string;
   VAULT_MASTER_SECRET: string;
@@ -15,7 +14,6 @@ export type VaultItemRow = {
   provider: string;
   provider_normalized: string;
   category: string;
-  category_normalized: string;
   tags_json: string;
   favorite: number;
   ciphertext: string;
@@ -26,11 +24,12 @@ export type VaultItemRow = {
   updated_at: number;
 };
 
-export type AuditEventRow = {
-  id: string;
-  action: string;
-  item_id: string | null;
-  item_name: string | null;
-  detail: string;
-  created_at: number;
-};
+export type VaultItemListRow = Pick<
+  VaultItemRow,
+  "id" | "name" | "type" | "provider" | "category" | "tags_json" | "favorite" | "deleted_at" | "created_at" | "updated_at"
+>;
+
+export type VaultCipherRow = Pick<
+  VaultItemRow,
+  "id" | "type" | "ciphertext" | "encryption_iv" | "encryption_version"
+>;

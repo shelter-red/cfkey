@@ -24,11 +24,10 @@ describe("vault crypto", () => {
     expect(result.secretIndex).toBe(1);
   });
 
-  it("signs stateless session and unlock tokens", async () => {
-    const token = await createSignedToken(secret, "session", 60);
-    expect(await verifySignedToken(secret, token, "session")).toBe(true);
-    expect(await verifySignedToken(secret, token, "unlock")).toBe(false);
-    expect(await verifySignedToken("wrong", token, "session")).toBe(false);
+  it("signs stateless session tokens", async () => {
+    const token = await createSignedToken(secret, 60);
+    expect(await verifySignedToken(secret, token)).toBe(true);
+    expect(await verifySignedToken("wrong", token)).toBe(false);
   });
 
   it("compares deployment passwords without early length acceptance", () => {

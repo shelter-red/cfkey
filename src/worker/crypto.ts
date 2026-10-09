@@ -1,21 +1,10 @@
 import type { VaultSecretData } from "../shared/types";
+import { base64UrlToBytes, base64UrlToText, bytesToBase64Url, textToBase64Url } from "../shared/base64-url";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const HKDF_SALT = encoder.encode("cfkey:vault:v1");
 const HKDF_INFO = encoder.encode("vault-item-encryption");
-
-export function base64Url(bytes: Uint8Array): string {
-  let value = "";
-  for (const byte of bytes) value += String.fromCharCode(byte);
-  return btoa(value).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/g, "");
-}
-
-export function fromBase64Url(value: string): Uint8Array {
-  const padded = value.replaceAll("-", "+").replaceAll("_", "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
-  const binary = atob(padded);
-  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
-}
 
 export function constantTimeEqual(left: string, right: string): boolean {
   const a = encoder.encode(left);
@@ -30,21 +19,21 @@ export function constantTimeEqual(left: string, right: string): boolean {
 
 async function hmac(secret: string, value: string): Promise<string> {
   const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  return base64Url(new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(value))));
+  return bytesToBase64Url(new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(value))));
 }
 
-export async function createSignedToken(secret: string, kind: "session" | "unlock", lifetimeSeconds: number): Promise<string> {
-  const payload = base64Url(encoder.encode(JSON.stringify({ kind, exp: Math.floor(Date.now() / 1000) + lifetimeSeconds })));
+export async function createSignedToken(secret: string, lifetimeSeconds: number): Promise<string> {
+  const payload = textToBase64Url(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + lifetimeSeconds }));
   return `${payload}.${await hmac(secret, payload)}`;
 }
 
-export async function verifySignedToken(secret: string, token: string | undefined, expectedKind: "session" | "unlock"): Promise<boolean> {
+export async function verifySignedToken(secret: string, token: string | undefined): Promise<boolean> {
   if (!secret || !token) return false;
   const [payload, signature, extra] = token.split(".");
   if (!payload || !signature || extra || !constantTimeEqual(signature, await hmac(secret, payload))) return false;
   try {
-    const parsed = JSON.parse(decoder.decode(fromBase64Url(payload))) as { kind?: string; exp?: number };
-    return parsed.kind === expectedKind && typeof parsed.exp === "number" && parsed.exp > Math.floor(Date.now() / 1000);
+    const parsed = JSON.parse(base64UrlToText(payload)) as { exp?: number };
+    return typeof parsed.exp === "number" && parsed.exp > Math.floor(Date.now() / 1000);
   } catch {
     return false;
   }
@@ -78,7 +67,7 @@ export async function encryptSecretData(
     await deriveVaultKey(secret),
     plaintext,
   );
-  return { ciphertext: base64Url(new Uint8Array(encrypted)), iv: base64Url(iv), version: 1 };
+  return { ciphertext: bytesToBase64Url(new Uint8Array(encrypted)), iv: bytesToBase64Url(iv), version: 1 };
 }
 
 export async function decryptSecretData(
@@ -96,11 +85,11 @@ export async function decryptSecretData(
       const plaintext = await crypto.subtle.decrypt(
         {
           name: "AES-GCM",
-          iv: fromBase64Url(iv) as BufferSource,
+          iv: base64UrlToBytes(iv) as BufferSource,
           additionalData: aad(itemId, itemType, version) as BufferSource,
         },
         await deriveVaultKey(secret),
-        fromBase64Url(ciphertext) as BufferSource,
+        base64UrlToBytes(ciphertext) as BufferSource,
       );
       return { data: JSON.parse(decoder.decode(plaintext)) as VaultSecretData, secretIndex: index };
     } catch {
