@@ -5,6 +5,7 @@ import {
   NIcon, NInput, NModal, NSelect, NText, NUpload,
   type UploadFileInfo,
 } from "naive-ui";
+import { CATEGORY_OPTIONS, PROVIDER_OPTIONS } from "@shared/select-options";
 import type { SecretFieldDefinition, SecretTemplate } from "@shared/types";
 import type { FormState, SelectOption } from "../types";
 import MnemonicField from "./MnemonicField.vue";
@@ -30,6 +31,19 @@ const emit = defineEmits<{
 
 const MAX_IMPORTED_FIELD_BYTES = 60 * 1024;
 const attempted = ref(false);
+
+/** Selects are advisory: an unlisted value is kept verbatim and an empty one becomes "". */
+function setFieldValue(fieldId: string, value: string | number | null): void {
+  props.form.fields[fieldId] = value == null ? "" : String(value);
+}
+
+/** Mirrors the server-side caps so a long custom value is clamped instead of silently truncated. */
+const META_MAX_LENGTH = { provider: 120, category: 80 } as const;
+
+function setMetaValue(key: "provider" | "category", value: string | number | null): void {
+  const text = value == null ? "" : String(value);
+  props.form[key] = text.slice(0, META_MAX_LENGTH[key]);
+}
 
 function fieldError(field: SecretFieldDefinition): string | undefined {
   return attempted.value && field.required && !props.form.fields[field.id]?.trim()
@@ -84,8 +98,28 @@ async function importField(field: SecretFieldDefinition, fileInfo: UploadFileInf
         <NFormItemGi label="类型">
           <NSelect v-model:value="form.type" :options="typeOptions" :disabled="Boolean(form.id)" />
         </NFormItemGi>
-        <NFormItemGi label="服务商"><NInput v-model:value="form.provider" maxlength="120" /></NFormItemGi>
-        <NFormItemGi label="分类"><NInput v-model:value="form.category" maxlength="80" /></NFormItemGi>
+        <NFormItemGi label="服务商">
+          <NSelect
+            :value="form.provider || null"
+            :options="PROVIDER_OPTIONS"
+            filterable
+            tag
+            clearable
+            placeholder="选择或直接输入"
+            @update:value="setMetaValue('provider', $event)"
+          />
+        </NFormItemGi>
+        <NFormItemGi label="分类">
+          <NSelect
+            :value="form.category || null"
+            :options="CATEGORY_OPTIONS"
+            filterable
+            tag
+            clearable
+            placeholder="选择或直接输入"
+            @update:value="setMetaValue('category', $event)"
+          />
+        </NFormItemGi>
         <NFormItemGi label="标签" span="1 820:2"><NInput v-model:value="form.tags" placeholder="使用逗号分隔" /></NFormItemGi>
       </NGrid>
 
@@ -110,6 +144,16 @@ async function importField(field: SecretFieldDefinition, fileInfo: UploadFileInf
               v-if="field.kind === 'mnemonic'"
               v-model="form.fields[field.id]"
               @error="emit('error', $event)"
+            />
+            <NSelect
+              v-else-if="field.options?.length"
+              :value="form.fields[field.id] || null"
+              :options="field.options"
+              :placeholder="field.placeholder ?? '选择或直接输入'"
+              filterable
+              tag
+              clearable
+              @update:value="setFieldValue(field.id, $event)"
             />
             <NInput
               v-else

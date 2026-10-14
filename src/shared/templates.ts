@@ -1,3 +1,10 @@
+import {
+  DATABASE_ENGINE_OPTIONS,
+  PATH_STYLE_OPTIONS,
+  REGION_OPTIONS,
+  WALLET_NETWORK_OPTIONS,
+  WEBHOOK_HEADER_OPTIONS,
+} from "./select-options";
 import type { SecretTemplate } from "./types";
 
 export const SECRET_TEMPLATES: SecretTemplate[] = [
@@ -27,7 +34,7 @@ export const SECRET_TEMPLATES: SecretTemplate[] = [
     name: "数据库",
     description: "数据库连接地址、账号和密码",
     fields: [
-      { id: "engine", label: "数据库类型", kind: "text", required: true },
+      { id: "engine", label: "数据库类型", kind: "text", required: true, options: DATABASE_ENGINE_OPTIONS },
       { id: "host", label: "主机", kind: "text", required: true, sensitive: true, copyable: true },
       { id: "port", label: "端口", kind: "number", copyable: true },
       { id: "database", label: "数据库名", kind: "text", copyable: true },
@@ -43,11 +50,11 @@ export const SECRET_TEMPLATES: SecretTemplate[] = [
     fields: [
       { id: "endpoint", label: "端点（Endpoint）", kind: "url", required: true, copyable: true },
       { id: "bucket", label: "存储桶（Bucket）", kind: "text", required: true, copyable: true },
-      { id: "region", label: "区域", kind: "text", copyable: true },
+      { id: "region", label: "区域", kind: "text", copyable: true, options: REGION_OPTIONS },
       { id: "accessKeyId", label: "访问密钥 ID", kind: "text", required: true, sensitive: true, copyable: true },
       { id: "secretAccessKey", label: "访问密钥", kind: "password", required: true, sensitive: true, copyable: true },
       { id: "sessionToken", label: "会话令牌", kind: "textarea", sensitive: true, copyable: true },
-      { id: "pathStyle", label: "寻址方式", kind: "text", placeholder: "virtual-hosted 或 path-style" },
+      { id: "pathStyle", label: "寻址方式", kind: "text", placeholder: "virtual-hosted 或 path-style", options: PATH_STYLE_OPTIONS },
     ],
   },
   {
@@ -85,7 +92,7 @@ export const SECRET_TEMPLATES: SecretTemplate[] = [
       { id: "accessKeyId", label: "访问密钥 ID", kind: "text", required: true, sensitive: true, copyable: true },
       { id: "secretAccessKey", label: "访问密钥", kind: "password", required: true, sensitive: true, copyable: true },
       { id: "sessionToken", label: "会话令牌", kind: "textarea", sensitive: true, copyable: true },
-      { id: "region", label: "区域", kind: "text" },
+      { id: "region", label: "区域", kind: "text", options: REGION_OPTIONS },
       { id: "project", label: "项目", kind: "text" },
     ],
   },
@@ -109,7 +116,7 @@ export const SECRET_TEMPLATES: SecretTemplate[] = [
     fields: [
       { id: "url", label: "Webhook 地址", kind: "url", required: true, sensitive: true, copyable: true },
       { id: "signingSecret", label: "签名密钥", kind: "password", required: true, sensitive: true, copyable: true, generate: "random" },
-      { id: "headerName", label: "签名请求头", kind: "text" },
+      { id: "headerName", label: "签名请求头", kind: "text", options: WEBHOOK_HEADER_OPTIONS },
     ],
   },
   {
@@ -131,7 +138,7 @@ export const SECRET_TEMPLATES: SecretTemplate[] = [
     fields: [
       { id: "phrase", label: "助记词或恢复短语", kind: "mnemonic", required: true, sensitive: true, copyable: true },
       { id: "passphrase", label: "附加口令", kind: "password", sensitive: true, copyable: true },
-      { id: "network", label: "网络或钱包", kind: "text" },
+      { id: "network", label: "网络或钱包", kind: "text", options: WALLET_NETWORK_OPTIONS },
     ],
   },
   {

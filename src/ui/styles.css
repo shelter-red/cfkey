@@ -108,10 +108,6 @@ button, input, textarea { letter-spacing: 0; }
 .mnemonic-action { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 5px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; transition: background 160ms ease, border-color 160ms ease, color 160ms ease; }
 .mnemonic-action:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
 .mnemonic-action:disabled { opacity: 0.5; cursor: default; }
-.mnemonic-action--primary { border-color: transparent; background: var(--primary); color: #fff; }
-.mnemonic-action--primary:hover:not(:disabled) { background: #0e655c; color: #fff; }
-.mnemonic-masked { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 8px; background: var(--surface-soft); }
-.mnemonic-masked-text { color: var(--muted); font-size: 13px; }
 .mnemonic-words { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
 .mnemonic-word { display: flex; align-items: center; gap: 6px; min-height: 42px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; font-size: 14px; text-align: left; cursor: pointer; transition: background 160ms ease, border-color 160ms ease; }
 .mnemonic-word:hover { border-color: var(--primary); background: var(--primary-soft); }

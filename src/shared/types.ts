@@ -1,5 +1,10 @@
 export type SecretFieldKind = "text" | "password" | "textarea" | "url" | "number" | "mnemonic";
 
+export type SecretFieldOption = {
+  label: string;
+  value: string;
+};
+
 export type SecretFieldDefinition = {
   id: string;
   label: string;
@@ -8,6 +13,7 @@ export type SecretFieldDefinition = {
   sensitive?: boolean;
   copyable?: boolean;
   placeholder?: string;
+  options?: SecretFieldOption[];
   generate?: "random";
   uploadAccept?: string;
 };
