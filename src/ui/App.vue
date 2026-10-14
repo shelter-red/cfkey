@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import { computed, h, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { DatabaseBackup, LogOut, Plus, RefreshCw, Search, ShieldCheck, SlidersHorizontal } from "@lucide/vue";
 import {
   NButton, NCard, NConfigProvider, NDrawer, NDrawerContent, NFlex, NForm,
@@ -12,10 +12,11 @@ import { REQUIRED_SECRET_NAMES } from "@shared/config";
 import { TEMPLATE_BY_ID } from "@shared/templates";
 import type { ItemInput, VaultItem, VaultItemPage, VaultSecretData } from "@shared/types";
 import {
-  CLASSIFICATION_FILTER_OPTIONS, createClassificationOptions,
+  CLASSIFICATION_FILTER_OPTIONS, CLASSIFICATION_LEAF_BY_ID, createClassificationOptions,
   databaseCategoryForEngine, databaseEngineForCategory, providerOptionsForCategory,
-  resolveStoredCategory,
+  fieldDefaultsForCategory, resolveStoredCategory,
 } from "@shared/classification";
+import { planTemplateTransition } from "@shared/field-transition";
 import { api, ApiError } from "./api";
 import BackupDialog from "./components/BackupDialog.vue";
 import BrandLockup from "./components/BrandLockup.vue";
@@ -72,7 +73,7 @@ const emptyForm = (): FormState => ({
 const form = reactive<FormState>(emptyForm());
 const categoryFilterOptions = [{ label: "全部分类", value: "" }, ...CLASSIFICATION_FILTER_OPTIONS];
 const formClassificationOptions = computed(() => createClassificationOptions(
-  form.id ? form.type : undefined,
+  undefined,
   Boolean(form.id && form.category === "database.legacy"),
 ));
 const formProviderOptions = computed(() => providerOptionsForCategory(form.category));
@@ -210,12 +211,58 @@ function resetForm() { Object.assign(form, emptyForm()); }
 function openCreate() { resetForm(); formOpen.value = true; }
 function tagsForSubmit(): string[] { return form.tags.split(/[,，]/).map((value) => value.trim()).filter(Boolean); }
 
+function applyClassification(category: string): void {
+  const leaf = CLASSIFICATION_LEAF_BY_ID.get(category);
+  const targetTemplate = leaf ? TEMPLATE_BY_ID.get(leaf.templateId) : undefined;
+  if (!leaf || !targetTemplate) return;
+
+  const transition = planTemplateTransition(form.fields, form.type, leaf.templateId);
+  const nextFields = transition.fields;
+  for (const [fieldId, value] of Object.entries(fieldDefaultsForCategory(category))) {
+    if (targetTemplate.fields.some((field) => field.id === fieldId)) nextFields[fieldId] = value;
+  }
+
+  form.category = category;
+  form.type = leaf.templateId;
+  form.fields = nextFields;
+  form.provider = "";
+  if (leaf.databaseEngine) form.fields.engine = leaf.databaseEngine;
+  syncDatabaseConnectionString();
+}
+
+function requestClassification(category: string): void {
+  const leaf = CLASSIFICATION_LEAF_BY_ID.get(category);
+  if (!leaf || category === form.category) return;
+  if (!form.id || leaf.templateId === form.type) {
+    applyClassification(category);
+    return;
+  }
+
+  const transition = planTemplateTransition(form.fields, form.type, leaf.templateId);
+  const preserved = transition.preserved.length ? transition.preserved.join("、") : "无同名字段";
+  const dropped = transition.dropped.length ? transition.dropped.join("、") : "无";
+  dialog.warning({
+    title: "切换分类将更换字段模板",
+    content: () => h("div", { style: "display:grid;gap:8px;line-height:1.6;" }, [
+      h("div", `保留：${preserved}`),
+      h("div", `丢弃：${dropped}`),
+      h("div", "名称、标签、收藏、备注会保留，服务商会清空。"),
+    ]),
+    positiveText: "确认切换",
+    negativeText: "取消",
+    onPositiveClick: () => applyClassification(category),
+  });
+}
+
 function applyDatabaseConnectionString() {
   const raw = form.fields.connectionString?.trim();
   if (!raw || form.type !== "database") return;
   const parsed = parseDatabaseConnectionString(raw);
   const inferredCategory = parsed.engine ? databaseCategoryForEngine(parsed.engine) : undefined;
-  if (inferredCategory) form.category = inferredCategory;
+  if (inferredCategory && inferredCategory !== form.category) {
+    form.category = inferredCategory;
+    form.provider = "";
+  }
   for (const [key, value] of Object.entries(parsed)) if (value !== undefined) form.fields[key] = value;
   const derivedEngine = databaseEngineForCategory(form.category);
   if (derivedEngine) form.fields.engine = derivedEngine;
@@ -355,18 +402,6 @@ watch(() => form.type, () => {
   form.fields = Object.fromEntries(Object.entries(form.fields).filter(([key]) => valid.has(key)));
   syncDatabaseConnectionString();
 });
-watch(() => form.category, (category, previousCategory) => {
-  const derivedEngine = databaseEngineForCategory(category);
-  if (form.type === "database" && derivedEngine) form.fields.engine = derivedEngine;
-  if (previousCategory && previousCategory !== category && form.provider) {
-    const previousProviders = providerOptionsForCategory(previousCategory);
-    const nextProviders = providerOptionsForCategory(category);
-    const isKnownProvider = previousProviders.some((provider) => provider.value === form.provider);
-    const remainsAvailable = nextProviders.some((provider) => provider.value === form.provider);
-    if (isKnownProvider && !remainsAvailable) form.provider = "";
-  }
-  syncDatabaseConnectionString();
-});
 watch(
   () => form.type === "database" ? [form.fields.engine, form.fields.host, form.fields.port, form.fields.database, form.fields.username, form.fields.password] : [],
   syncDatabaseConnectionString,
@@ -486,7 +521,7 @@ onUnmounted(() => { window.clearTimeout(searchTimer); });
       <VaultEditorModal
         v-model:show="formOpen" :form="form" :template="formTemplate"
         :classification-options="formClassificationOptions" :provider-options="formProviderOptions" :saving="saving"
-        @save="saveItem" @generate="generateField" @connection-change="applyDatabaseConnectionString"
+        @save="saveItem" @select-category="requestClassification" @generate="generateField" @connection-change="applyDatabaseConnectionString"
         @imported="announce" @error="showError" @closed="clearFormFields"
       />
 

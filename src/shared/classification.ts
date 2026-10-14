@@ -5,6 +5,7 @@ export type ClassificationLeaf = {
   label: string;
   templateId: string;
   databaseEngine?: string;
+  fieldDefaults?: Record<string, string>;
   providers: SecretFieldOption[];
 };
 
@@ -123,16 +124,6 @@ export const CLASSIFICATION_TREE: ClassificationGroup[] = [
         ]),
       },
       {
-        id: "cloud.ssh",
-        label: "SSH 主机",
-        templateId: "ssh",
-        providers: withDefaultProviders([
-          option("AWS EC2", "AWS EC2"), option("阿里云 ECS", "阿里云 ECS"),
-          option("腾讯云 CVM", "腾讯云 CVM"), option("华为云 ECS", "华为云 ECS"),
-          option("DigitalOcean"),
-        ]),
-      },
-      {
         id: "cloud.kubernetes",
         label: "Kubernetes",
         templateId: "kubernetes",
@@ -143,14 +134,89 @@ export const CLASSIFICATION_TREE: ClassificationGroup[] = [
           option("DigitalOcean Kubernetes", "DigitalOcean Kubernetes"),
         ]),
       },
+    ],
+  },
+  {
+    id: "server-network",
+    label: "服务器与网络",
+    leaves: [
       {
-        id: "cloud.tls",
-        label: "TLS 证书",
-        templateId: "tls",
+        id: "cloud.ssh",
+        label: "SSH 主机",
+        templateId: "ssh",
         providers: withDefaultProviders([
-          option("Let's Encrypt", "Let's Encrypt"), option("DigiCert"), option("GlobalSign"),
-          option("Sectigo"), option("ZeroSSL"), option("Cloudflare"),
-          option("阿里云"), option("腾讯云"), option("华为云"),
+          option("OpenSSH"), option("AWS EC2", "AWS EC2"), option("阿里云 ECS", "阿里云 ECS"),
+          option("腾讯云 CVM", "腾讯云 CVM"), option("华为云 ECS", "华为云 ECS"),
+          option("DigitalOcean"), option("Synology"), option("QNAP"),
+        ]),
+      },
+      {
+        id: "server.ftp",
+        label: "FTP",
+        templateId: "ftp",
+        fieldDefaults: { protocol: "FTP" },
+        providers: withDefaultProviders([
+          option("Synology"), option("QNAP"), option("TrueNAS"), option("FileZilla Server", "FileZilla Server"),
+          option("ProFTPD"), option("vsftpd"), option("Pure-FTPd"), option("Serv-U"),
+        ]),
+      },
+      {
+        id: "server.ftps",
+        label: "FTPS",
+        templateId: "ftp",
+        fieldDefaults: { protocol: "FTPS" },
+        providers: withDefaultProviders([
+          option("Synology"), option("QNAP"), option("TrueNAS"), option("FileZilla Server", "FileZilla Server"),
+          option("ProFTPD"), option("vsftpd"), option("Pure-FTPd"),
+        ]),
+      },
+      {
+        id: "server.sftp",
+        label: "SFTP",
+        templateId: "ftp",
+        fieldDefaults: { protocol: "SFTP" },
+        providers: withDefaultProviders([
+          option("OpenSSH"), option("Synology"), option("QNAP"), option("TrueNAS"),
+          option("AWS Transfer Family", "AWS Transfer Family"), option("Azure Blob SFTP", "Azure Blob SFTP"),
+        ]),
+      },
+      {
+        id: "server.webdav",
+        label: "WebDAV",
+        templateId: "webdav",
+        providers: withDefaultProviders([
+          option("Nextcloud"), option("ownCloud"), option("Synology"), option("QNAP"),
+          option("TrueNAS"), option("Apache mod_dav", "Apache mod_dav"), option("Nginx WebDAV", "Nginx WebDAV"),
+          option("坚果云", "坚果云"),
+        ]),
+      },
+      {
+        id: "server.vpn",
+        label: "VPN",
+        templateId: "vpn",
+        providers: withDefaultProviders([
+          option("OpenVPN"), option("WireGuard"), option("Tailscale"), option("ZeroTier"),
+          option("Cloudflare WARP", "Cloudflare WARP"), option("AWS Client VPN", "AWS Client VPN"),
+          option("Azure VPN", "Azure VPN"), option("阿里云 VPN", "阿里云 VPN"), option("腾讯云 VPN", "腾讯云 VPN"),
+        ]),
+      },
+      {
+        id: "server.remote-desktop",
+        label: "远程桌面",
+        templateId: "remote-desktop",
+        providers: withDefaultProviders([
+          option("Windows RDP", "Windows RDP"), option("Apache Guacamole", "Apache Guacamole"),
+          option("RustDesk"), option("AnyDesk"), option("TeamViewer"), option("VMware Horizon", "VMware Horizon"),
+          option("Citrix"),
+        ]),
+      },
+      {
+        id: "server.proxy",
+        label: "代理服务",
+        templateId: "proxy",
+        providers: withDefaultProviders([
+          option("Squid"), option("Nginx"), option("HAProxy"), option("tinyproxy"),
+          option("3proxy"), option("Clash"), option("Surge"),
         ]),
       },
     ],
@@ -178,7 +244,7 @@ export const CLASSIFICATION_TREE: ClassificationGroup[] = [
   },
   {
     id: "development",
-    label: "开发工具",
+    label: "开发运维",
     leaves: [
       {
         id: "development.api-key",
@@ -206,6 +272,145 @@ export const CLASSIFICATION_TREE: ClassificationGroup[] = [
         providers: withDefaultProviders([
           option("Stripe"), option("GitHub"), option("GitLab"), option("Slack"),
           option("Twilio"), option("SendGrid"),
+        ]),
+      },
+      {
+        id: "devops.ci-cd",
+        label: "CI/CD 令牌",
+        templateId: "api-key",
+        providers: withDefaultProviders([
+          option("GitHub Actions", "GitHub Actions"), option("GitLab CI", "GitLab CI"),
+          option("Jenkins"), option("CircleCI"), option("Buildkite"), option("Drone"),
+          option("Tekton"), option("Argo CD", "Argo CD"),
+        ]),
+      },
+      {
+        id: "devops.registry",
+        label: "容器镜像仓库",
+        templateId: "registry",
+        providers: withDefaultProviders([
+          option("Docker Hub", "Docker Hub"), option("GHCR"), option("GitLab Container Registry", "GitLab Container Registry"),
+          option("Harbor"), option("AWS ECR", "AWS ECR"), option("Google Artifact Registry", "Google Artifact Registry"),
+          option("Azure ACR", "Azure ACR"), option("阿里云 ACR", "阿里云 ACR"), option("腾讯云 TCR", "腾讯云 TCR"),
+          option("Quay"), option("JFrog Artifactory", "JFrog Artifactory"),
+        ]),
+      },
+      {
+        id: "devops.package-repo",
+        label: "软件包仓库",
+        templateId: "registry",
+        providers: withDefaultProviders([
+          option("npm"), option("PyPI"), option("Maven Central", "Maven Central"),
+          option("JFrog Artifactory", "JFrog Artifactory"), option("Sonatype Nexus", "Sonatype Nexus"),
+          option("Verdaccio"), option("GitHub Packages", "GitHub Packages"), option("GitLab Package Registry", "GitLab Package Registry"),
+        ]),
+      },
+    ],
+  },
+  {
+    id: "mail-message",
+    label: "邮件与消息",
+    leaves: [
+      {
+        id: "mail.smtp",
+        label: "SMTP 邮件发送",
+        templateId: "mail",
+        fieldDefaults: { protocol: "SMTP" },
+        providers: withDefaultProviders([
+          option("SendGrid"), option("Amazon SES", "Amazon SES"), option("Mailgun"),
+          option("Postmark"), option("Resend"), option("SMTP2GO"), option("阿里云邮件推送", "阿里云邮件推送"),
+          option("腾讯云 SES", "腾讯云 SES"),
+        ]),
+      },
+      {
+        id: "mail.imap",
+        label: "IMAP 邮箱",
+        templateId: "mail",
+        fieldDefaults: { protocol: "IMAP" },
+        providers: withDefaultProviders([
+          option("Gmail"), option("Microsoft 365", "Microsoft 365"), option("Fastmail"),
+          option("Zoho Mail", "Zoho Mail"), option("QQ 邮箱", "QQ 邮箱"), option("163 邮箱", "163 邮箱"),
+          option("腾讯企业邮", "腾讯企业邮"), option("阿里云企业邮箱", "阿里云企业邮箱"),
+        ]),
+      },
+      {
+        id: "mail.pop3",
+        label: "POP3 邮箱",
+        templateId: "mail",
+        fieldDefaults: { protocol: "POP3" },
+        providers: withDefaultProviders([
+          option("Gmail"), option("Microsoft 365", "Microsoft 365"), option("Zoho Mail", "Zoho Mail"),
+          option("QQ 邮箱", "QQ 邮箱"), option("163 邮箱", "163 邮箱"), option("腾讯企业邮", "腾讯企业邮"),
+        ]),
+      },
+      {
+        id: "message.sms-push",
+        label: "短信 / 消息推送",
+        templateId: "api-key",
+        providers: withDefaultProviders([
+          option("Twilio"), option("Vonage"), option("阿里云短信", "阿里云短信"), option("腾讯云短信", "腾讯云短信"),
+          option("Slack"), option("Discord"), option("Telegram"), option("Bark"), option("ntfy"),
+        ]),
+      },
+    ],
+  },
+  {
+    id: "domain-network",
+    label: "域名与网络",
+    leaves: [
+      {
+        id: "network.dns",
+        label: "DNS API",
+        templateId: "api-key",
+        providers: withDefaultProviders([
+          option("Cloudflare"), option("AWS Route 53", "AWS Route 53"), option("Google Cloud DNS", "Google Cloud DNS"),
+          option("Azure DNS", "Azure DNS"), option("阿里云 DNS", "阿里云 DNS"), option("腾讯云 DNSPod", "腾讯云 DNSPod"),
+          option("华为云 DNS", "华为云 DNS"), option("Namecheap"), option("GoDaddy"), option("Porkbun"),
+        ]),
+      },
+      {
+        id: "network.cdn-waf",
+        label: "CDN / WAF",
+        templateId: "api-key",
+        providers: withDefaultProviders([
+          option("Cloudflare"), option("Akamai"), option("Fastly"), option("Amazon CloudFront", "Amazon CloudFront"),
+          option("Azure Front Door", "Azure Front Door"), option("阿里云 CDN", "阿里云 CDN"),
+          option("腾讯云 EdgeOne", "腾讯云 EdgeOne"), option("华为云 CDN", "华为云 CDN"),
+        ]),
+      },
+      {
+        id: "cloud.tls",
+        label: "TLS 证书",
+        templateId: "tls",
+        providers: withDefaultProviders([
+          option("Let's Encrypt", "Let's Encrypt"), option("DigiCert"), option("GlobalSign"),
+          option("Sectigo"), option("ZeroSSL"), option("Cloudflare"),
+          option("阿里云"), option("腾讯云"), option("华为云"),
+        ]),
+      },
+    ],
+  },
+  {
+    id: "monitoring",
+    label: "监控告警",
+    leaves: [
+      {
+        id: "monitoring.platform",
+        label: "监控 / 日志平台",
+        templateId: "api-key",
+        providers: withDefaultProviders([
+          option("Datadog"), option("Grafana"), option("Prometheus"), option("Zabbix"),
+          option("Sentry"), option("New Relic", "New Relic"), option("Uptime Kuma", "Uptime Kuma"),
+          option("Better Stack", "Better Stack"),
+        ]),
+      },
+      {
+        id: "monitoring.alert-webhook",
+        label: "告警 Webhook",
+        templateId: "webhook",
+        providers: withDefaultProviders([
+          option("PagerDuty"), option("Opsgenie"), option("Slack"), option("Discord"),
+          option("Telegram"), option("钉钉"), option("飞书"), option("企业微信"),
         ]),
       },
     ],
@@ -272,6 +477,13 @@ const DEFAULT_CATEGORY_BY_TYPE: Record<string, string> = {
   kubernetes: "cloud.kubernetes",
   "recovery-phrase": "crypto.recovery-phrase",
   generic: "other.generic",
+  ftp: "server.ftp",
+  webdav: "server.webdav",
+  vpn: "server.vpn",
+  "remote-desktop": "server.remote-desktop",
+  proxy: "server.proxy",
+  mail: "mail.smtp",
+  registry: "devops.registry",
 };
 
 export function defaultCategoryForType(type: string): string {
@@ -311,6 +523,10 @@ export function categoryPath(category: unknown, type: string): string {
 
 export function providerOptionsForCategory(category: string): SecretFieldOption[] {
   return CLASSIFICATION_LEAF_BY_ID.get(category)?.providers ?? DEFAULT_PROVIDERS;
+}
+
+export function fieldDefaultsForCategory(category: string): Record<string, string> {
+  return CLASSIFICATION_LEAF_BY_ID.get(category)?.fieldDefaults ?? {};
 }
 
 export function databaseEngineForCategory(category: string): string | undefined {

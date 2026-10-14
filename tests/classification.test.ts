@@ -4,10 +4,12 @@ import {
   CLASSIFICATION_LEAVES,
   CLASSIFICATION_LEAF_BY_ID,
   categoryPath,
+  classificationLeafForType,
   createClassificationOptions,
   databaseCategoryForEngine,
   databaseEngineForCategory,
   defaultCategoryForType,
+  fieldDefaultsForCategory,
   providerOptionsForCategory,
   resolveStoredCategory,
 } from "../src/shared/classification";
@@ -24,6 +26,9 @@ describe("classification tree", () => {
       expect(TEMPLATE_BY_ID.has(leaf.templateId), leaf.id).toBe(true);
       expect(leaf.label.trim(), leaf.id).not.toBe("");
     }
+    for (const templateId of TEMPLATE_BY_ID.keys()) {
+      expect(classificationLeafForType(templateId)?.templateId, templateId).toBe(templateId);
+    }
     expect(CLASSIFICATION_FILTER_OPTIONS).toHaveLength(CLASSIFICATION_LEAVES.length);
   });
 
@@ -38,6 +43,18 @@ describe("classification tree", () => {
     expect(providerOptionsForCategory("database.postgresql").map((item) => item.value)).not.toContain("Vercel");
     expect(providerOptionsForCategory("database.mongodb").map((item) => item.value)).not.toContain("Supabase");
     expect(providerOptionsForCategory("cloud.ssh").map((item) => item.value)).not.toContain("Stripe");
+    expect(providerOptionsForCategory("server.ftp").map((item) => item.value)).not.toContain("Vercel");
+    expect(providerOptionsForCategory("devops.registry").map((item) => item.value)).not.toContain("SendGrid");
+  });
+
+  it("derives file-transfer and mail protocols from the selected leaf", () => {
+    expect(fieldDefaultsForCategory("server.ftp")).toEqual({ protocol: "FTP" });
+    expect(fieldDefaultsForCategory("server.ftps")).toEqual({ protocol: "FTPS" });
+    expect(fieldDefaultsForCategory("server.sftp")).toEqual({ protocol: "SFTP" });
+    expect(fieldDefaultsForCategory("mail.smtp")).toEqual({ protocol: "SMTP" });
+    expect(fieldDefaultsForCategory("mail.imap")).toEqual({ protocol: "IMAP" });
+    expect(fieldDefaultsForCategory("mail.pop3")).toEqual({ protocol: "POP3" });
+    expect(fieldDefaultsForCategory("other.generic")).toEqual({});
   });
 
   it("derives database engines from database leaves only", () => {
@@ -61,8 +78,9 @@ describe("classification tree", () => {
   });
 
   it("builds readable paths and template-scoped editor options", () => {
-    expect(categoryPath("cloud.ssh", "ssh")).toBe("云服务 / SSH 主机");
-    expect(categoryPath("", "api-key")).toBe("开发工具 / API 密钥");
+    expect(categoryPath("cloud.ssh", "ssh")).toBe("服务器与网络 / SSH 主机");
+    expect(categoryPath("", "api-key")).toBe("开发运维 / API 密钥");
+    expect(categoryPath("server.webdav", "webdav")).toBe("服务器与网络 / WebDAV");
     const options = createClassificationOptions("database");
     expect(options).toHaveLength(1);
     expect(options[0].children?.length).toBeGreaterThan(10);
@@ -70,6 +88,13 @@ describe("classification tree", () => {
     expect(options[0].children?.map((option) => option.value)).not.toContain("database.legacy");
     const legacyOptions = createClassificationOptions("database", true);
     expect(legacyOptions[0].children?.map((option) => option.value)).toContain("database.legacy");
+    const allOptions = createClassificationOptions();
+    expect(allOptions.map((option) => option.label)).toEqual(expect.arrayContaining([
+      "服务器与网络",
+      "邮件与消息",
+      "域名与网络",
+      "监控告警",
+    ]));
   });
 
   it("maps pasted connection-string engines back to a database leaf", () => {

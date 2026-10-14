@@ -15,4 +15,66 @@ describe("secret templates", () => {
       "pathStyle",
     ]);
   });
+
+  it("provides field-differentiated server, mail and registry templates", () => {
+    expect(TEMPLATE_BY_ID.get("ftp")?.fields.map((field) => field.id)).toEqual([
+      "protocol",
+      "host",
+      "port",
+      "username",
+      "password",
+      "remotePath",
+      "mode",
+    ]);
+    expect(TEMPLATE_BY_ID.get("ftp")?.fields.find((field) => field.id === "protocol")?.hidden).toBe(true);
+    expect(TEMPLATE_BY_ID.get("webdav")?.fields.map((field) => field.id)).toEqual([
+      "url",
+      "username",
+      "password",
+      "remotePath",
+    ]);
+    expect(TEMPLATE_BY_ID.get("vpn")?.fields.map((field) => field.id)).toEqual([
+      "protocol",
+      "server",
+      "port",
+      "username",
+      "password",
+      "preSharedKey",
+      "privateKey",
+      "config",
+    ]);
+    expect(TEMPLATE_BY_ID.get("remote-desktop")?.fields.map((field) => field.id)).toEqual([
+      "protocol",
+      "host",
+      "port",
+      "username",
+      "password",
+      "domain",
+      "gateway",
+    ]);
+    expect(TEMPLATE_BY_ID.get("proxy")?.fields.map((field) => field.id)).toEqual([
+      "protocol",
+      "host",
+      "port",
+      "username",
+      "password",
+      "url",
+    ]);
+    expect(TEMPLATE_BY_ID.get("mail")?.fields.map((field) => field.id)).toEqual([
+      "protocol",
+      "host",
+      "port",
+      "encryption",
+      "username",
+      "password",
+      "fromAddress",
+    ]);
+    expect(TEMPLATE_BY_ID.get("mail")?.fields.find((field) => field.id === "protocol")?.hidden).toBe(true);
+    expect(TEMPLATE_BY_ID.get("registry")?.fields.map((field) => field.id)).toEqual([
+      "endpoint",
+      "namespace",
+      "username",
+      "password",
+    ]);
+  });
 });

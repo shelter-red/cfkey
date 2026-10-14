@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Check, Copy } from "@lucide/vue";
 import { computed, nextTick, ref, watch } from "vue";
 import { mnemonicCellCount, mnemonicIssues, mnemonicWords, normalizeMnemonic } from "../mnemonic";
 
@@ -10,8 +9,6 @@ const emit = defineEmits<{
 }>();
 
 const local = ref<string[]>(mnemonicWords(props.modelValue));
-const copiedIndex = ref(-1);
-const copiedAll = ref(false);
 const cellRefs = ref<HTMLInputElement[]>([]);
 
 watch(() => props.modelValue, (value) => {
@@ -58,6 +55,16 @@ function onInput(index: number, event: Event) {
 function onKeydown(index: number, event: KeyboardEvent) {
   if (event.isComposing) return;
   const input = event.target as HTMLInputElement;
+  if (event.key === "Tab" && !event.shiftKey && index < cells.value - 1) {
+    event.preventDefault();
+    focusCell(index + 1);
+    return;
+  }
+  if (event.key === "Tab" && event.shiftKey && index > 0) {
+    event.preventDefault();
+    focusCell(index - 1);
+    return;
+  }
   if (event.key === " " || event.key === "Enter") {
     event.preventDefault();
     focusCell(index + 1);
@@ -89,32 +96,6 @@ function onPaste(index: number, event: ClipboardEvent) {
     return;
   }
   setCell(index, tokens[0]);
-}
-
-async function copyText(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch (value) {
-    emit("error", value);
-    return false;
-  }
-}
-
-async function copyWord(index: number) {
-  const word = local.value[index];
-  if (!word) return;
-  if (!(await copyText(word))) return;
-  copiedIndex.value = index;
-  window.setTimeout(() => { if (copiedIndex.value === index) copiedIndex.value = -1; }, 1600);
-}
-
-async function copyEveryWord() {
-  const words = allWords.value;
-  if (words.length === 0) return;
-  if (!(await copyText(words.join(" ")))) return;
-  copiedAll.value = true;
-  window.setTimeout(() => { copiedAll.value = false; }, 1600);
 }
 
 async function pasteFromClipboard() {
@@ -156,27 +137,14 @@ function clearAll() {
           @keydown="onKeydown(index - 1, $event)"
           @paste="onPaste(index - 1, $event)"
         />
-        <button
-          type="button"
-          class="mnemonic-copy"
-          :disabled="disabled || !local[index - 1]"
-          :title="`复制第 ${index} 个单词`"
-          :aria-label="`复制第 ${index} 个单词`"
-          @click="copyWord(index - 1)"
-        >
-          <Check v-if="copiedIndex === index - 1" :size="14" />
-          <Copy v-else :size="14" />
-        </button>
       </label>
     </div>
     <div class="mnemonic-meta">
       <span class="mnemonic-count">{{ allWords.length }} 个单词</span>
       <span v-for="issue in issues" :key="issue" class="mnemonic-warning">{{ issue }}</span>
-      <span v-if="copiedAll" class="mnemonic-ok">已复制全部</span>
     </div>
     <div class="mnemonic-actions">
       <button type="button" class="mnemonic-action" :disabled="disabled" @click="pasteFromClipboard">粘贴</button>
-      <button type="button" class="mnemonic-action" :disabled="disabled || !allWords.length" @click="copyEveryWord">复制全部</button>
       <button type="button" class="mnemonic-action" :disabled="disabled || !allWords.length" @click="clearAll">清空</button>
     </div>
   </div>

@@ -75,3 +75,52 @@ export const WALLET_NETWORK_OPTIONS: SecretFieldOption[] = [
   { label: "Polkadot", value: "Polkadot" },
   { label: "MetaMask", value: "MetaMask" },
 ];
+
+export const FILE_TRANSFER_PROTOCOL_OPTIONS: SecretFieldOption[] = [
+  { label: "FTP", value: "FTP" },
+  { label: "FTPS", value: "FTPS" },
+  { label: "SFTP", value: "SFTP" },
+];
+
+export const FTP_MODE_OPTIONS: SecretFieldOption[] = [
+  { label: "被动模式", value: "passive" },
+  { label: "主动模式", value: "active" },
+];
+
+export const VPN_PROTOCOL_OPTIONS: SecretFieldOption[] = [
+  { label: "OpenVPN", value: "OpenVPN" },
+  { label: "WireGuard", value: "WireGuard" },
+  { label: "IKEv2", value: "IKEv2" },
+  { label: "L2TP/IPSec", value: "L2TP/IPSec" },
+  { label: "SSTP", value: "SSTP" },
+  { label: "Tailscale", value: "Tailscale" },
+  { label: "ZeroTier", value: "ZeroTier" },
+  { label: "其他", value: "其他" },
+];
+
+export const REMOTE_DESKTOP_PROTOCOL_OPTIONS: SecretFieldOption[] = [
+  { label: "RDP", value: "RDP" },
+  { label: "VNC", value: "VNC" },
+  { label: "SSH X11", value: "SSH X11" },
+  { label: "其他", value: "其他" },
+];
+
+export const PROXY_PROTOCOL_OPTIONS: SecretFieldOption[] = [
+  { label: "HTTP", value: "HTTP" },
+  { label: "HTTPS", value: "HTTPS" },
+  { label: "SOCKS5", value: "SOCKS5" },
+  { label: "其他", value: "其他" },
+];
+
+export const MAIL_PROTOCOL_OPTIONS: SecretFieldOption[] = [
+  { label: "SMTP", value: "SMTP" },
+  { label: "IMAP", value: "IMAP" },
+  { label: "POP3", value: "POP3" },
+];
+
+export const MAIL_ENCRYPTION_OPTIONS: SecretFieldOption[] = [
+  { label: "STARTTLS", value: "STARTTLS" },
+  { label: "SSL/TLS", value: "SSL/TLS" },
+  { label: "无加密", value: "none" },
+  { label: "其他", value: "其他" },
+];

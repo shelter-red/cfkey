@@ -5,7 +5,7 @@ import {
   NIcon, NInput, NModal, NSelect, NText, NUpload,
   type UploadFileInfo,
 } from "naive-ui";
-import { CLASSIFICATION_LEAF_BY_ID, type ClassificationCascaderOption } from "@shared/classification";
+import type { ClassificationCascaderOption } from "@shared/classification";
 import type { SecretFieldDefinition, SecretTemplate } from "@shared/types";
 import type { FormState, SelectOption } from "../types";
 import MnemonicField from "./MnemonicField.vue";
@@ -22,6 +22,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   "update:show": [value: boolean];
+  selectCategory: [category: string];
   save: [];
   generate: [fieldId: string];
   connectionChange: [];
@@ -48,12 +49,7 @@ function setProvider(value: string | number | null): void {
 
 function setCategory(value: string | number | null): void {
   const category = value == null ? "" : String(value).slice(0, 80);
-  const leaf = CLASSIFICATION_LEAF_BY_ID.get(category);
-  if (!leaf) return;
-  if (props.form.id && leaf.templateId !== props.form.type) return;
-  props.form.category = category;
-  props.form.type = leaf.templateId;
-  if (leaf.databaseEngine) props.form.fields.engine = leaf.databaseEngine;
+  if (category) emit("selectCategory", category);
 }
 
 function fieldError(field: SecretFieldDefinition): string | undefined {

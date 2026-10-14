@@ -179,6 +179,58 @@ describe("stateless authentication", () => {
     expect(decrypted.data.fields.engine).toBe("postgresql");
   });
 
+  it("updates an existing item across templates and re-encrypts with the new type", async () => {
+    let updateValues: unknown[] = [];
+    const db = {
+      prepare(sql: string) {
+        const statement = {
+          bind: (...values: unknown[]) => {
+            if (sql.includes("UPDATE vault_item")) updateValues = values;
+            return statement;
+          },
+          run: async () => ({ success: true, meta: { changes: 1 } }),
+          first: async () => null,
+          all: async () => ({ results: [] }),
+        };
+        return statement;
+      },
+      batch: async () => [],
+    } as unknown as D1Database;
+    const token = await createSignedToken(env.SESSION_SECRET, 60);
+    const response = await app.request(url("/api/items/item-1"), {
+      method: "PUT",
+      headers: { cookie: `cfkey_session=${token}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "SFTP files",
+        type: "ftp",
+        category: "server.sftp",
+        provider: "",
+        tags: ["server"],
+        favorite: false,
+        secretData: {
+          fields: { protocol: "SFTP", host: "files.example.com", username: "deploy", password: "secret" },
+          notes: "keep this note",
+        },
+      }),
+    }, { ...env, DB: db });
+
+    expect(response.status).toBe(200);
+    expect(updateValues[2]).toBe("ftp");
+    expect(updateValues[5]).toBe("server.sftp");
+    const decrypted = await decryptSecretData(
+      [env.VAULT_MASTER_SECRET],
+      "item-1",
+      "ftp",
+      updateValues[8] as string,
+      updateValues[9] as string,
+      updateValues[10] as number,
+    );
+    expect(decrypted.data).toEqual({
+      fields: { protocol: "SFTP", host: "files.example.com", username: "deploy", password: "secret" },
+      notes: "keep this note",
+    });
+  });
+
   it("reads only eleven rows to return a ten-item page", async () => {
     const rows = Array.from({ length: 11 }, (_, index): VaultItemRow => ({
       id: `item-${String(20 - index).padStart(2, "0")}`,

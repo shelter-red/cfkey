@@ -97,9 +97,6 @@ button, input, textarea { letter-spacing: 0; }
 .mnemonic-input { flex: 1 1 auto; width: 100%; min-width: 0; padding: 6px 2px; border: 0; background: transparent; color: var(--ink); font-family: inherit; font-size: 14px; }
 .mnemonic-input:focus { outline: none; }
 .mnemonic-input:disabled { color: var(--muted); }
-.mnemonic-copy { display: inline-grid; width: 28px; height: 28px; flex: 0 0 28px; place-items: center; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; transition: background 160ms ease, color 160ms ease; }
-.mnemonic-copy:hover:not(:disabled) { background: var(--primary-soft); color: var(--primary); }
-.mnemonic-copy:disabled { opacity: 0.35; cursor: default; }
 .mnemonic-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 12px; }
 .mnemonic-count { color: var(--muted); font-variant-numeric: tabular-nums; }
 .mnemonic-warning { color: #b45309; }
@@ -174,7 +171,6 @@ button, input, textarea { letter-spacing: 0; }
   .login-brand h1 { margin-top: 24px; font-size: 38px; }
   .mnemonic-grid { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); }
   .mnemonic-cell { min-height: 48px; }
-  .mnemonic-copy { width: 32px; height: 32px; flex-basis: 32px; }
   .mnemonic-word, .mnemonic-action { min-height: 44px; }
   .backup-modal { width: calc(100vw - 16px) !important; height: calc(100dvh - 16px); max-height: calc(100dvh - 16px); }
   .backup-modal > .n-card-content { padding: 16px; }
