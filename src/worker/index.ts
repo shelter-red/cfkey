@@ -17,6 +17,9 @@ import {
   type BackupPayload,
   type ImportMode,
 } from "../shared/backup";
+import {
+  databaseEngineForCategory, isClassificationLeaf, resolveStoredCategory,
+} from "../shared/classification";
 import { REQUIRED_SECRET_NAMES } from "../shared/config";
 import { TEMPLATE_BY_ID } from "../shared/templates";
 import type { ItemInput, VaultItemPage, VaultSecretData } from "../shared/types";
@@ -115,18 +118,33 @@ function validateInput(payload: ItemInput, requireSecret: boolean) {
   const type = normalizeText(payload.type, 40);
   if (!name) throw new Error("ITEM_NAME_REQUIRED");
   if (!TEMPLATE_BY_ID.has(type)) throw new Error("ITEM_TYPE_INVALID");
-  if (requireSecret && !validSecretData(payload.secretData)) throw new Error("ITEM_SECRET_REQUIRED");
-  if (payload.secretData && (!validSecretData(payload.secretData) || jsonSize(payload.secretData) > MAX_SECRET_BYTES)) {
+
+  const rawCategory = normalizeText(payload.category, 80);
+  const category = resolveStoredCategory(rawCategory, type);
+  if (rawCategory && isClassificationLeaf(rawCategory) && category !== rawCategory) {
+    throw new Error("ITEM_CATEGORY_INVALID");
+  }
+
+  const validSecret = validSecretData(payload.secretData);
+  if (requireSecret && !validSecret) throw new Error("ITEM_SECRET_REQUIRED");
+  if (payload.secretData && (!validSecret || jsonSize(payload.secretData) > MAX_SECRET_BYTES)) {
     throw new Error("ITEM_SECRET_TOO_LARGE");
   }
+
+  let secretData = validSecret ? payload.secretData : undefined;
+  if (secretData && type === "database") {
+    const engine = databaseEngineForCategory(category);
+    if (engine) secretData = { ...secretData, fields: { ...secretData.fields, engine } };
+  }
+
   return {
     name,
     type,
     provider: normalizeText(payload.provider, 120),
-    category: normalizeText(payload.category, 80),
+    category,
     tags: tagsFrom(payload.tags),
     favorite: Boolean(payload.favorite),
-    secretData: payload.secretData,
+    secretData,
   };
 }
 
@@ -135,6 +153,7 @@ function errorResponse(error: unknown, c: Context<Bindings>) {
   const known: Record<string, [string, 400 | 404 | 409 | 413 | 500 | 503]> = {
     ITEM_NAME_REQUIRED: ["请输入名称", 400],
     ITEM_TYPE_INVALID: ["密钥类型无效", 400],
+    ITEM_CATEGORY_INVALID: ["分类与密钥类型不匹配", 400],
     ITEM_SECRET_REQUIRED: ["请填写密钥字段", 400],
     ITEM_SECRET_TOO_LARGE: ["单条密钥内容不能超过 64KB", 413],
     ITEM_NOT_FOUND: ["密钥不存在", 404],
@@ -314,6 +333,7 @@ app.use("/api/import", requireSession);
 app.get("/api/items", async (c) => {
   const limit = 11;
   const q = searchable(normalizeText(c.req.query("q"), 50));
+  const category = normalizeText(c.req.query("category"), 80);
   const type = normalizeText(c.req.query("type"), 40);
   const favorite = c.req.query("favorite") === "1";
   const trash = c.req.query("trash") === "1";
@@ -325,7 +345,8 @@ app.get("/api/items", async (c) => {
     clauses.push("((i.name_normalized >= ? AND i.name_normalized < ?) OR (i.provider_normalized >= ? AND i.provider_normalized < ?))");
     bindings.push(q, `${q}\uffff`, q, `${q}\uffff`);
   }
-  if (type) { clauses.push("i.type = ?"); bindings.push(type); }
+  if (category) { clauses.push("i.category = ?"); bindings.push(category); }
+  else if (type) { clauses.push("i.type = ?"); bindings.push(type); }
   if (favorite) clauses.push("i.favorite = 1");
   if (cursor) {
     clauses.push("(i.updated_at < ? OR (i.updated_at = ? AND i.id < ?))");

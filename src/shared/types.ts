@@ -14,6 +14,7 @@ export type SecretFieldDefinition = {
   copyable?: boolean;
   placeholder?: string;
   options?: SecretFieldOption[];
+  hidden?: boolean;
   generate?: "random";
   uploadAccept?: string;
 };

@@ -1,21 +1,22 @@
 <script setup lang="ts">
 import { ShieldCheck, Sparkles, Upload } from "@lucide/vue";
 import {
-  NButton, NCheckbox, NDivider, NFlex, NForm, NFormItem, NFormItemGi, NGrid,
+  NButton, NCascader, NCheckbox, NDivider, NFlex, NForm, NFormItem, NFormItemGi, NGrid,
   NIcon, NInput, NModal, NSelect, NText, NUpload,
   type UploadFileInfo,
 } from "naive-ui";
-import { CATEGORY_OPTIONS, PROVIDER_OPTIONS } from "@shared/select-options";
+import { CLASSIFICATION_LEAF_BY_ID, type ClassificationCascaderOption } from "@shared/classification";
 import type { SecretFieldDefinition, SecretTemplate } from "@shared/types";
 import type { FormState, SelectOption } from "../types";
 import MnemonicField from "./MnemonicField.vue";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 
 const props = defineProps<{
   show: boolean;
   form: FormState;
   template: SecretTemplate;
-  typeOptions: SelectOption[];
+  classificationOptions: ClassificationCascaderOption[];
+  providerOptions: SelectOption[];
   saving: boolean;
 }>();
 
@@ -31,18 +32,28 @@ const emit = defineEmits<{
 
 const MAX_IMPORTED_FIELD_BYTES = 60 * 1024;
 const attempted = ref(false);
+const visibleFields = computed(() => props.template.fields.filter((field) => !field.hidden));
 
 /** Selects are advisory: an unlisted value is kept verbatim and an empty one becomes "". */
 function setFieldValue(fieldId: string, value: string | number | null): void {
   props.form.fields[fieldId] = value == null ? "" : String(value);
 }
 
-/** Mirrors the server-side caps so a long custom value is clamped instead of silently truncated. */
-const META_MAX_LENGTH = { provider: 120, category: 80 } as const;
+/** Mirrors the server-side cap so a long custom value is clamped instead of silently truncated. */
+const PROVIDER_MAX_LENGTH = 120;
 
-function setMetaValue(key: "provider" | "category", value: string | number | null): void {
-  const text = value == null ? "" : String(value);
-  props.form[key] = text.slice(0, META_MAX_LENGTH[key]);
+function setProvider(value: string | number | null): void {
+  props.form.provider = value == null ? "" : String(value).slice(0, PROVIDER_MAX_LENGTH);
+}
+
+function setCategory(value: string | number | null): void {
+  const category = value == null ? "" : String(value).slice(0, 80);
+  const leaf = CLASSIFICATION_LEAF_BY_ID.get(category);
+  if (!leaf) return;
+  if (props.form.id && leaf.templateId !== props.form.type) return;
+  props.form.category = category;
+  props.form.type = leaf.templateId;
+  if (leaf.databaseEngine) props.form.fields.engine = leaf.databaseEngine;
 }
 
 function fieldError(field: SecretFieldDefinition): string | undefined {
@@ -95,29 +106,25 @@ async function importField(field: SecretFieldDefinition, fileInfo: UploadFileInf
         <NFormItemGi label="名称" required :validation-status="attempted && !form.name.trim() ? 'error' : undefined" :feedback="attempted && !form.name.trim() ? '请输入名称' : undefined">
           <NInput v-model:value="form.name" maxlength="160" />
         </NFormItemGi>
-        <NFormItemGi label="类型">
-          <NSelect v-model:value="form.type" :options="typeOptions" :disabled="Boolean(form.id)" />
+        <NFormItemGi label="分类" required>
+          <NCascader
+            :value="form.category || null"
+            :options="classificationOptions"
+            check-strategy="child"
+            filterable
+            placeholder="选择大类 / 小类"
+            @update:value="setCategory"
+          />
         </NFormItemGi>
         <NFormItemGi label="服务商">
           <NSelect
             :value="form.provider || null"
-            :options="PROVIDER_OPTIONS"
+            :options="providerOptions"
             filterable
             tag
             clearable
             placeholder="选择或直接输入"
-            @update:value="setMetaValue('provider', $event)"
-          />
-        </NFormItemGi>
-        <NFormItemGi label="分类">
-          <NSelect
-            :value="form.category || null"
-            :options="CATEGORY_OPTIONS"
-            filterable
-            tag
-            clearable
-            placeholder="选择或直接输入"
-            @update:value="setMetaValue('category', $event)"
+            @update:value="setProvider"
           />
         </NFormItemGi>
         <NFormItemGi label="标签" span="1 820:2"><NInput v-model:value="form.tags" placeholder="使用逗号分隔" /></NFormItemGi>
@@ -132,7 +139,7 @@ async function importField(field: SecretFieldDefinition, fileInfo: UploadFileInf
 
       <NFlex vertical class="field-stack">
         <NFormItem
-          v-for="field in template.fields"
+          v-for="field in visibleFields"
           :key="field.id"
           :label="field.label"
           :required="field.required"

@@ -5,6 +5,7 @@ import {
   NIcon, NLayoutContent, NList, NListItem, NP, NPageHeader, NSpin,
   NTag, NText,
 } from "naive-ui";
+import { categoryPath } from "@shared/classification";
 import { TEMPLATE_BY_ID } from "@shared/templates";
 import type { SecretFieldDefinition, VaultItem, VaultSecretData } from "@shared/types";
 import { formatShortDate } from "../format";
@@ -32,7 +33,7 @@ const emit = defineEmits<{
 
 function visibleFields(item: VaultItem): SecretFieldDefinition[] {
   const template = TEMPLATE_BY_ID.get(item.type);
-  return template?.fields.filter((field) => Boolean(props.secretData?.fields[field.id])) ?? [];
+  return template?.fields.filter((field) => !field.hidden && Boolean(props.secretData?.fields[field.id])) ?? [];
 }
 </script>
 
@@ -72,7 +73,7 @@ function visibleFields(item: VaultItem): SecretFieldDefinition[] {
         <NGi>
           <NFlex class="metadata-cell" vertical :size="4">
             <NText depth="3" class="metadata-label">分类</NText>
-            <NText strong class="metadata-value">{{ selected.category || "未分类" }}</NText>
+            <NText strong class="metadata-value">{{ categoryPath(selected.category, selected.type) }}</NText>
           </NFlex>
         </NGi>
         <NGi>

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  CATEGORY_OPTIONS, DATABASE_ENGINE_OPTIONS, PATH_STYLE_OPTIONS, PROVIDER_OPTIONS,
-  REGION_OPTIONS, WALLET_NETWORK_OPTIONS, WEBHOOK_HEADER_OPTIONS,
+  DATABASE_ENGINE_OPTIONS, PATH_STYLE_OPTIONS, REGION_OPTIONS,
+  WALLET_NETWORK_OPTIONS, WEBHOOK_HEADER_OPTIONS,
 } from "../src/shared/select-options";
 import { SECRET_TEMPLATES, TEMPLATE_BY_ID } from "../src/shared/templates";
 import type { SecretFieldOption } from "../src/shared/types";
@@ -9,7 +9,7 @@ import { buildDatabaseConnectionString } from "../src/ui/database-connection";
 
 const catalogs: Record<string, SecretFieldOption[]> = {
   DATABASE_ENGINE_OPTIONS, PATH_STYLE_OPTIONS, WEBHOOK_HEADER_OPTIONS,
-  REGION_OPTIONS, WALLET_NETWORK_OPTIONS, PROVIDER_OPTIONS, CATEGORY_OPTIONS,
+  REGION_OPTIONS, WALLET_NETWORK_OPTIONS,
 };
 
 describe("select option catalogs", () => {
@@ -49,6 +49,7 @@ describe("template select fields", () => {
     const optionsFor = (templateId: string, fieldId: string) =>
       TEMPLATE_BY_ID.get(templateId)?.fields.find((field) => field.id === fieldId)?.options;
     expect(optionsFor("database", "engine")).toBe(DATABASE_ENGINE_OPTIONS);
+    expect(TEMPLATE_BY_ID.get("database")?.fields.find((field) => field.id === "engine")?.hidden).toBe(true);
     expect(optionsFor("object-storage", "pathStyle")).toBe(PATH_STYLE_OPTIONS);
     expect(optionsFor("object-storage", "region")).toBe(REGION_OPTIONS);
     expect(optionsFor("cloud", "region")).toBe(REGION_OPTIONS);

@@ -4,7 +4,7 @@ import {
   NButton, NEmpty, NFlex, NIcon, NLayoutSider, NList, NListItem,
   NScrollbar, NSelect, NSpin, NTab, NTabs, NTag, NText, NThing,
 } from "naive-ui";
-import { TEMPLATE_BY_ID } from "@shared/templates";
+import { categoryPath } from "@shared/classification";
 import type { VaultItem } from "@shared/types";
 import { formatShortDate } from "../format";
 import type { SelectOption, ViewMode } from "../types";
@@ -15,15 +15,15 @@ const props = defineProps<{
   loading: boolean;
   query: string;
   activeFilters: number;
-  typeFilter: string;
-  typeOptions: SelectOption[];
+  categoryFilter: string;
+  categoryOptions: SelectOption[];
   viewMode: ViewMode;
   currentPage: number;
   nextCursor: string | null;
 }>();
 
 const emit = defineEmits<{
-  "update:typeFilter": [value: string];
+  "update:categoryFilter": [value: string];
   "update:viewMode": [value: ViewMode];
   select: [item: VaultItem];
   create: [];
@@ -41,11 +41,11 @@ const emit = defineEmits<{
           <NText depth="3">本页 {{ items.length }} 条</NText>
         </NFlex>
         <NSelect
-          class="type-select"
+          class="category-select"
           size="small"
-          :value="typeFilter"
-          :options="typeOptions"
-          @update:value="emit('update:typeFilter', $event)"
+          :value="categoryFilter"
+          :options="categoryOptions"
+          @update:value="emit('update:categoryFilter', $event)"
         />
       </NFlex>
 
@@ -98,7 +98,7 @@ const emit = defineEmits<{
               <NText depth="3" class="item-date">{{ formatShortDate(item.updatedAt) }}</NText>
             </template>
             <template #description>
-              {{ TEMPLATE_BY_ID.get(item.type)?.name || item.type }}<template v-if="item.provider"> · {{ item.provider }}</template>
+              {{ categoryPath(item.category, item.type) }}<template v-if="item.provider"> · {{ item.provider }}</template>
             </template>
             <template v-if="item.tags.length" #footer>
               <NFlex :size="4"><NTag v-for="tag in item.tags.slice(0, 3)" :key="tag" size="tiny" :bordered="false">{{ tag }}</NTag></NFlex>

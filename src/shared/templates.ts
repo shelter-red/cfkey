@@ -34,7 +34,7 @@ export const SECRET_TEMPLATES: SecretTemplate[] = [
     name: "数据库",
     description: "数据库连接地址、账号和密码",
     fields: [
-      { id: "engine", label: "数据库类型", kind: "text", required: true, options: DATABASE_ENGINE_OPTIONS },
+      { id: "engine", label: "数据库类型", kind: "text", required: true, options: DATABASE_ENGINE_OPTIONS, hidden: true },
       { id: "host", label: "主机", kind: "text", required: true, sensitive: true, copyable: true },
       { id: "port", label: "端口", kind: "number", copyable: true },
       { id: "database", label: "数据库名", kind: "text", copyable: true },

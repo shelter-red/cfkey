@@ -9,8 +9,13 @@ import {
 } from "naive-ui";
 import { bytesToBase64Url } from "@shared/base64-url";
 import { REQUIRED_SECRET_NAMES } from "@shared/config";
-import { SECRET_TEMPLATES, TEMPLATE_BY_ID } from "@shared/templates";
+import { TEMPLATE_BY_ID } from "@shared/templates";
 import type { ItemInput, VaultItem, VaultItemPage, VaultSecretData } from "@shared/types";
+import {
+  CLASSIFICATION_FILTER_OPTIONS, createClassificationOptions,
+  databaseCategoryForEngine, databaseEngineForCategory, providerOptionsForCategory,
+  resolveStoredCategory,
+} from "@shared/classification";
 import { api, ApiError } from "./api";
 import BackupDialog from "./components/BackupDialog.vue";
 import BrandLockup from "./components/BrandLockup.vue";
@@ -46,7 +51,7 @@ const currentPage = ref(1);
 const pageCursors = ref<(string | null)[]>([null]);
 const loadingItems = ref(false);
 const query = ref("");
-const typeFilter = ref("");
+const categoryFilter = ref("");
 const favoriteFilter = ref(false);
 const trashFilter = ref(false);
 const filtersOpen = ref(false);
@@ -61,16 +66,20 @@ const secretError = ref("");
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
 
 const emptyForm = (): FormState => ({
-  id: "", name: "", type: "generic", provider: "", category: "",
+  id: "", name: "", type: "generic", provider: "", category: "other.generic",
   tags: "", favorite: false, fields: {}, notes: "",
 });
 const form = reactive<FormState>(emptyForm());
-const formTypeOptions = SECRET_TEMPLATES.map((template) => ({ label: template.name, value: template.id }));
-const typeOptions = [{ label: "全部类型", value: "" }, ...formTypeOptions];
+const categoryFilterOptions = [{ label: "全部分类", value: "" }, ...CLASSIFICATION_FILTER_OPTIONS];
+const formClassificationOptions = computed(() => createClassificationOptions(
+  form.id ? form.type : undefined,
+  Boolean(form.id && form.category === "database.legacy"),
+));
+const formProviderOptions = computed(() => providerOptionsForCategory(form.category));
 
 const selected = computed(() => items.value.find((item) => item.id === selectedId.value) ?? null);
-const formTemplate = computed(() => TEMPLATE_BY_ID.get(form.type) ?? SECRET_TEMPLATES.at(-1)!);
-const activeFilters = computed(() => Number(Boolean(typeFilter.value)) + Number(favoriteFilter.value) + Number(trashFilter.value));
+const formTemplate = computed(() => TEMPLATE_BY_ID.get(form.type) ?? TEMPLATE_BY_ID.get("generic")!);
+const activeFilters = computed(() => Number(Boolean(categoryFilter.value)) + Number(favoriteFilter.value) + Number(trashFilter.value));
 const viewMode = computed<ViewMode>({
   get: () => trashFilter.value ? "trash" : favoriteFilter.value ? "favorites" : "all",
   set: (value) => {
@@ -79,7 +88,7 @@ const viewMode = computed<ViewMode>({
   },
 });
 const canSave = computed(() => Boolean(form.name.trim()) && formTemplate.value.fields
-  .filter((field) => field.required)
+  .filter((field) => field.required && !field.hidden)
   .every((field) => Boolean(form.fields[field.id]?.trim())));
 
 function normalizeSession(value: unknown): SessionState {
@@ -135,7 +144,7 @@ async function logout() {
 function itemQuery(cursor?: string | null) {
   const params = new URLSearchParams();
   if (query.value.trim()) params.set("q", query.value.trim());
-  if (typeFilter.value) params.set("type", typeFilter.value);
+  if (categoryFilter.value) params.set("category", categoryFilter.value);
   if (favoriteFilter.value) params.set("favorite", "1");
   if (trashFilter.value) params.set("trash", "1");
   if (cursor) params.set("cursor", cursor);
@@ -186,7 +195,7 @@ async function previousPage() {
   await loadItems(currentPage.value - 1, pageCursors.value[currentPage.value - 2] ?? null);
 }
 
-watch([query, typeFilter, favoriteFilter, trashFilter], () => {
+watch([query, categoryFilter, favoriteFilter, trashFilter], () => {
   window.clearTimeout(searchTimer);
   searchTimer = window.setTimeout(() => void reloadFirstPage(), 350);
 });
@@ -205,19 +214,26 @@ function applyDatabaseConnectionString() {
   const raw = form.fields.connectionString?.trim();
   if (!raw || form.type !== "database") return;
   const parsed = parseDatabaseConnectionString(raw);
+  const inferredCategory = parsed.engine ? databaseCategoryForEngine(parsed.engine) : undefined;
+  if (inferredCategory) form.category = inferredCategory;
   for (const [key, value] of Object.entries(parsed)) if (value !== undefined) form.fields[key] = value;
+  const derivedEngine = databaseEngineForCategory(form.category);
+  if (derivedEngine) form.fields.engine = derivedEngine;
   syncDatabaseConnectionString();
 }
 
 function syncDatabaseConnectionString() {
   if (form.type !== "database") return;
+  const derivedEngine = databaseEngineForCategory(form.category);
+  if (derivedEngine) form.fields.engine = derivedEngine;
   const value = buildDatabaseConnectionString(form.fields);
   if (value) form.fields.connectionString = value;
 }
 
 function formPayload(): ItemInput {
   return {
-    name: form.name, type: form.type, provider: form.provider, category: form.category,
+    name: form.name, type: form.type, provider: form.provider,
+    category: resolveStoredCategory(form.category, form.type),
     tags: tagsForSubmit(), favorite: form.favorite,
     secretData: { fields: { ...form.fields }, notes: form.notes },
   };
@@ -285,7 +301,7 @@ async function openEdit(item: VaultItem) {
   if (!secretData.value || secretItemId.value !== item.id) return;
   Object.assign(form, {
     id: item.id, name: item.name, type: item.type, provider: item.provider,
-    category: item.category, tags: item.tags.join(", "), favorite: item.favorite,
+    category: resolveStoredCategory(item.category, item.type), tags: item.tags.join(", "), favorite: item.favorite,
     fields: { ...secretData.value.fields }, notes: secretData.value.notes,
   });
   if (item.type === "database") applyDatabaseConnectionString();
@@ -331,12 +347,24 @@ function generateField(fieldId: string) {
 }
 
 function clearFormFields() { form.fields = {}; form.notes = ""; }
-function chooseType(type: string) { typeFilter.value = type; trashFilter.value = false; filtersOpen.value = false; }
+function chooseCategory(category: string) { categoryFilter.value = category; trashFilter.value = false; filtersOpen.value = false; }
 function closeDetail() { selectedId.value = ""; clearSecretData(); }
 
 watch(() => form.type, () => {
   const valid = new Set(formTemplate.value.fields.map((field) => field.id));
   form.fields = Object.fromEntries(Object.entries(form.fields).filter(([key]) => valid.has(key)));
+  syncDatabaseConnectionString();
+});
+watch(() => form.category, (category, previousCategory) => {
+  const derivedEngine = databaseEngineForCategory(category);
+  if (form.type === "database" && derivedEngine) form.fields.engine = derivedEngine;
+  if (previousCategory && previousCategory !== category && form.provider) {
+    const previousProviders = providerOptionsForCategory(previousCategory);
+    const nextProviders = providerOptionsForCategory(category);
+    const isKnownProvider = previousProviders.some((provider) => provider.value === form.provider);
+    const remainsAvailable = nextProviders.some((provider) => provider.value === form.provider);
+    if (isKnownProvider && !remainsAvailable) form.provider = "";
+  }
   syncDatabaseConnectionString();
 });
 watch(
@@ -408,7 +436,7 @@ onUnmounted(() => { window.clearTimeout(searchTimer); });
               <template #prefix><NIcon><Search /></NIcon></template>
             </NInput>
             <NFlex class="header-actions" :wrap="false" :size="4">
-              <NButton class="mobile-filter" quaternary circle title="筛选类型" @click="filtersOpen = true">
+              <NButton class="mobile-filter" quaternary circle title="筛选分类" @click="filtersOpen = true">
                 <template #icon><NIcon><SlidersHorizontal /></NIcon></template>
               </NButton>
               <NButton quaternary circle title="加密备份" aria-label="加密备份" @click="backupOpen = true">
@@ -427,10 +455,10 @@ onUnmounted(() => { window.clearTimeout(searchTimer); });
         <NLayout class="workspace" has-sider :class="{ 'detail-active': selected }">
           <VaultListPane
             :items="items" :selected-id="selectedId" :loading="loadingItems"
-            :query="query" :active-filters="activeFilters" :type-filter="typeFilter"
-            :type-options="typeOptions" :view-mode="viewMode" :current-page="currentPage"
+            :query="query" :active-filters="activeFilters" :category-filter="categoryFilter"
+            :category-options="categoryFilterOptions" :view-mode="viewMode" :current-page="currentPage"
             :next-cursor="nextCursor"
-            @update:type-filter="typeFilter = $event" @update:view-mode="viewMode = $event"
+            @update:category-filter="categoryFilter = $event" @update:view-mode="viewMode = $event"
             @select="selectItem" @create="openCreate" @previous="previousPage" @next="nextPage"
           />
           <VaultDetailPane
@@ -444,12 +472,12 @@ onUnmounted(() => { window.clearTimeout(searchTimer); });
       </template>
 
       <NDrawer v-model:show="filtersOpen" placement="bottom" height="70vh">
-        <NDrawerContent title="类型筛选" closable>
+        <NDrawerContent title="分类筛选" closable>
           <NFlex vertical>
             <NButton
-              v-for="option in typeOptions" :key="option.value" block
-              :type="typeFilter === option.value ? 'primary' : 'default'"
-              :secondary="typeFilter !== option.value" @click="chooseType(option.value)"
+              v-for="option in categoryFilterOptions" :key="option.value" block
+              :type="categoryFilter === option.value ? 'primary' : 'default'"
+              :secondary="categoryFilter !== option.value" @click="chooseCategory(option.value)"
             >{{ option.label }}</NButton>
           </NFlex>
         </NDrawerContent>
@@ -457,7 +485,7 @@ onUnmounted(() => { window.clearTimeout(searchTimer); });
 
       <VaultEditorModal
         v-model:show="formOpen" :form="form" :template="formTemplate"
-        :type-options="formTypeOptions" :saving="saving"
+        :classification-options="formClassificationOptions" :provider-options="formProviderOptions" :saving="saving"
         @save="saveItem" @generate="generateField" @connection-change="applyDatabaseConnectionString"
         @imported="announce" @error="showError" @closed="clearFormFields"
       />

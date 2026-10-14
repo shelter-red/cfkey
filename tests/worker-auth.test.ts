@@ -11,7 +11,7 @@ import {
 } from "../src/shared/backup";
 import { REQUIRED_SECRET_NAMES } from "../src/shared/config";
 import app from "../src/worker/index";
-import { createSignedToken, encryptSecretData } from "../src/worker/crypto";
+import { createSignedToken, decryptSecretData, encryptSecretData } from "../src/worker/crypto";
 import type { Env, VaultItemRow } from "../src/worker/types";
 
 const env = {
@@ -135,6 +135,48 @@ describe("stateless authentication", () => {
       secretData: { fields: { secret: "visible-after-login" }, notes: "direct detail view" },
     });
     expect(writeCount).toBe(0);
+  });
+
+  it("normalises category leaves and derives the database engine on create", async () => {
+    let insertValues: unknown[] = [];
+    const db = {
+      prepare(sql: string) {
+        const statement = {
+          bind: (...values: unknown[]) => {
+            if (sql.includes("INSERT INTO vault_item")) insertValues = values;
+            return statement;
+          },
+          run: async () => ({ success: true, meta: {} }),
+          first: async () => null,
+          all: async () => ({ results: [] }),
+        };
+        return statement;
+      },
+      batch: async () => [],
+    } as unknown as D1Database;
+    const token = await createSignedToken(env.SESSION_SECRET, 60);
+    const response = await app.request(url("/api/items"), {
+      method: "POST",
+      headers: { cookie: `cfkey_session=${token}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "Primary database",
+        type: "database",
+        category: "database.postgresql",
+        secretData: {
+          fields: { engine: "mysql", host: "db.example.com", password: "secret" },
+          notes: "",
+        },
+      }),
+    }, { ...env, DB: db });
+
+    expect(response.status).toBe(201);
+    expect(insertValues[6]).toBe("database.postgresql");
+    const id = insertValues[0] as string;
+    const ciphertext = insertValues[9] as string;
+    const iv = insertValues[10] as string;
+    const version = insertValues[11] as number;
+    const decrypted = await decryptSecretData([env.VAULT_MASTER_SECRET], id, "database", ciphertext, iv, version);
+    expect(decrypted.data.fields.engine).toBe("postgresql");
   });
 
   it("reads only eleven rows to return a ten-item page", async () => {
