@@ -8,6 +8,7 @@ import {
 import { TEMPLATE_BY_ID } from "@shared/templates";
 import type { SecretFieldDefinition, VaultItem, VaultSecretData } from "@shared/types";
 import { formatShortDate } from "../format";
+import MnemonicViewer from "./MnemonicViewer.vue";
 
 const props = defineProps<{
   selected: VaultItem | null;
@@ -26,6 +27,7 @@ const emit = defineEmits<{
   remove: [item: VaultItem];
   retry: [item: VaultItem];
   copy: [fieldId: string];
+  error: [value: unknown];
 }>();
 
 function visibleFields(item: VaultItem): SecretFieldDefinition[] {
@@ -96,7 +98,15 @@ function visibleFields(item: VaultItem): SecretFieldDefinition[] {
         </NAlert>
         <NList v-else-if="secretData && visibleFields(selected).length" bordered class="secret-list">
           <NListItem v-for="field in visibleFields(selected)" :key="field.id">
-            <NFlex class="secret-row" align="flex-start" justify="space-between" :wrap="false">
+            <NFlex v-if="field.kind === 'mnemonic'" class="secret-row secret-row--mnemonic" vertical :size="6">
+              <NText depth="3" class="secret-label">{{ field.label }}</NText>
+              <MnemonicViewer
+                :value="secretData.fields[field.id]"
+                @copy="emit('copy', field.id)"
+                @error="emit('error', $event)"
+              />
+            </NFlex>
+            <NFlex v-else class="secret-row" align="flex-start" justify="space-between" :wrap="false">
               <NFlex class="secret-content" vertical :size="4">
                 <NText depth="3" class="secret-label">{{ field.label }}</NText>
                 <NCode :code="secretData.fields[field.id]" word-wrap internal-no-highlight />

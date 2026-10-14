@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
-import { LogOut, Plus, RefreshCw, Search, ShieldCheck, SlidersHorizontal } from "@lucide/vue";
+import { DatabaseBackup, LogOut, Plus, RefreshCw, Search, ShieldCheck, SlidersHorizontal } from "@lucide/vue";
 import {
   NButton, NCard, NConfigProvider, NDrawer, NDrawerContent, NFlex, NForm,
   NFormItem, NGlobalStyle, NH1, NIcon, NInput, NLayout, NLayoutHeader,
@@ -12,6 +12,7 @@ import { REQUIRED_SECRET_NAMES } from "@shared/config";
 import { SECRET_TEMPLATES, TEMPLATE_BY_ID } from "@shared/templates";
 import type { ItemInput, VaultItem, VaultItemPage, VaultSecretData } from "@shared/types";
 import { api, ApiError } from "./api";
+import BackupDialog from "./components/BackupDialog.vue";
 import BrandLockup from "./components/BrandLockup.vue";
 import VaultDetailPane from "./components/VaultDetailPane.vue";
 import VaultEditorModal from "./components/VaultEditorModal.vue";
@@ -50,6 +51,7 @@ const favoriteFilter = ref(false);
 const trashFilter = ref(false);
 const filtersOpen = ref(false);
 const formOpen = ref(false);
+const backupOpen = ref(false);
 const saving = ref(false);
 const copiedField = ref("");
 const secretData = ref<VaultSecretData | null>(null);
@@ -122,6 +124,7 @@ async function login() {
 async function logout() {
   await api("/api/auth/logout", { method: "POST" }).catch(() => undefined);
   formOpen.value = false;
+  backupOpen.value = false;
   clearSecretData();
   clearFormFields();
   items.value = [];
@@ -408,6 +411,9 @@ onUnmounted(() => { window.clearTimeout(searchTimer); });
               <NButton class="mobile-filter" quaternary circle title="筛选类型" @click="filtersOpen = true">
                 <template #icon><NIcon><SlidersHorizontal /></NIcon></template>
               </NButton>
+              <NButton quaternary circle title="加密备份" aria-label="加密备份" @click="backupOpen = true">
+                <template #icon><NIcon><DatabaseBackup /></NIcon></template>
+              </NButton>
               <NButton quaternary circle title="退出登录" @click="logout">
                 <template #icon><NIcon><LogOut /></NIcon></template>
               </NButton>
@@ -432,6 +438,7 @@ onUnmounted(() => { window.clearTimeout(searchTimer); });
             :secret-loading="secretLoading" :secret-error="secretError" :copied-field="copiedField"
             @close="closeDetail" @favorite="toggleFavorite" @edit="openEdit"
             @restore="restoreItem" @remove="removeItem" @retry="loadSecretData($event, true)" @copy="copyField"
+            @error="showError"
           />
         </NLayout>
       </template>
@@ -453,6 +460,13 @@ onUnmounted(() => { window.clearTimeout(searchTimer); });
         :type-options="formTypeOptions" :saving="saving"
         @save="saveItem" @generate="generateField" @connection-change="applyDatabaseConnectionString"
         @imported="announce" @error="showError" @closed="clearFormFields"
+      />
+
+      <BackupDialog
+        v-model:show="backupOpen"
+        @notify="announce"
+        @error="showError"
+        @imported="(message) => { announce(message); void reloadFirstPage(); }"
       />
     </NLayout>
   </NConfigProvider>

@@ -1,7 +1,9 @@
+export type SecretFieldKind = "text" | "password" | "textarea" | "url" | "number" | "mnemonic";
+
 export type SecretFieldDefinition = {
   id: string;
   label: string;
-  kind: "text" | "password" | "textarea" | "url" | "number";
+  kind: SecretFieldKind;
   required?: boolean;
   sensitive?: boolean;
   copyable?: boolean;

@@ -20,3 +20,17 @@ export type FormState = {
 };
 
 export type SelectOption = { label: string; value: string };
+
+export type ImportSample = { name: string; type: string; conflict: boolean };
+
+export type ImportPreview = {
+  itemCount: number;
+  conflicting: number;
+  sample: ImportSample[];
+};
+
+export type ImportResult = {
+  created: number;
+  overwritten: number;
+  failed: number;
+};

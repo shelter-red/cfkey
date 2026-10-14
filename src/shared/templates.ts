@@ -129,7 +129,7 @@ export const SECRET_TEMPLATES: SecretTemplate[] = [
     name: "助记词",
     description: "恢复短语与附加口令",
     fields: [
-      { id: "phrase", label: "助记词或恢复短语", kind: "textarea", required: true, sensitive: true, copyable: true },
+      { id: "phrase", label: "助记词或恢复短语", kind: "mnemonic", required: true, sensitive: true, copyable: true },
       { id: "passphrase", label: "附加口令", kind: "password", sensitive: true, copyable: true },
       { id: "network", label: "网络或钱包", kind: "text" },
     ],

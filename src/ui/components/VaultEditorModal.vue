@@ -7,6 +7,7 @@ import {
 } from "naive-ui";
 import type { SecretFieldDefinition, SecretTemplate } from "@shared/types";
 import type { FormState, SelectOption } from "../types";
+import MnemonicField from "./MnemonicField.vue";
 import { ref } from "vue";
 
 const props = defineProps<{
@@ -105,7 +106,13 @@ async function importField(field: SecretFieldDefinition, fileInfo: UploadFileInf
           :feedback="fieldError(field)"
         >
           <NFlex class="field-editor" vertical :size="8">
+            <MnemonicField
+              v-if="field.kind === 'mnemonic'"
+              v-model="form.fields[field.id]"
+              @error="emit('error', $event)"
+            />
             <NInput
+              v-else
               v-model:value="form.fields[field.id]"
               :type="field.kind === 'textarea' ? 'textarea' : field.kind === 'password' ? 'password' : 'text'"
               :show-password-on="field.kind === 'password' ? 'click' : undefined"
